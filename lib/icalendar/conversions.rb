@@ -44,6 +44,18 @@ class Array
   end
 end
 
+class Hash
+  def to_ical
+    string = map do |key, value|
+      key.to_s + '=' + value.to_s
+    end.join(';')
+    def string.no_escape
+      true
+    end
+    string
+  end
+end
+
 module URI
   class Generic
     def to_ical

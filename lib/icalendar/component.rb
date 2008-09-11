@@ -135,34 +135,43 @@ module Icalendar
         if key =~ /ip_.*/
           key = key[3..-1]
         end
+        
+        prelude = "#{key.gsub(/_/, '-').upcase}" 
 
         # Property name
-        unless multiline_property?(key)
-           prelude = "#{key.gsub(/_/, '-').upcase}" + 
-
-           # Possible parameters
-           print_parameters(val) 
-
-           # Property value
-           value = ":#{val.to_ical}" 
-           escaped = prelude + value.gsub("\\", "\\\\").gsub("\n", "\\n").gsub(",", "\\,").gsub(";", "\\;")
-           s << escaped.slice!(0, MAX_LINE_LENGTH) << "\r\n " while escaped.size > MAX_LINE_LENGTH
-           s << escaped << "\r\n"
-           s.gsub!(/ *$/, '')
+        s << if multiline_property?(key)
+          val.inject('') do |res, v|
+            res << print_value(v, prelude)
+          end
+         elsif multi_property?(key)
+           prelude + ':' + print_parameters(val) + val.map do |v|
+             escape(v.to_ical)
+           end.join('\,') << "\r\n"
          else 
-           prelude = "#{key.gsub(/_/, '-').upcase}" 
-            val.each do |v| 
-               params = print_parameters(v)
-               value = ":#{v.to_ical}"
-               escaped = prelude + params + value.gsub("\\", "\\\\").gsub("\n", "\\n").gsub(",", "\\,").gsub(";", "\\;")
-               s << escaped.slice!(0, MAX_LINE_LENGTH) << "\r\n " while escaped.size > MAX_LINE_LENGTH
-               s << escaped << "\r\n"
-               s.gsub!(/ *$/, '')
-            end
+            print_value val, prelude
          end
       end
       s
     end
+    
+    def print_value(value, prelude)
+      s = ''
+      params = print_parameters(value) 
+      value = value.to_ical
+      escaped = prelude + params + ':' << escape(value)
+      s << escaped.slice!(0, MAX_LINE_LENGTH) << "\r\n " while escaped.size > MAX_LINE_LENGTH
+      s << escaped << "\r\n"
+      s.gsub!(/ *$/, '')
+    end
+    
+    def escape(value)
+      if value.respond_to?(:no_escape) && value.no_escape
+        value
+      else
+        value.gsub("\\", "\\\\").gsub("\n", "\\n").gsub(",", "\\,").gsub(";", "\\;")
+      end
+    end
+    
 
     # Print the parameters for a specific property
     def print_parameters(val)

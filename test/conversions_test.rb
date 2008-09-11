@@ -94,4 +94,12 @@ EOS
     assert_equal(folded, @cal.to_ical)
   end
   
+  def test_multi_properties_with_params
+    @cal.event do
+      add_recurrence_rule({'FREQ' => 'YEARLY', 'BYMONTH' => '10', 'BYDAY' => '-1SU'})
+    end
+    
+    assert @cal.to_ical.include?('RRULE:BYMONTH=10;FREQ=YEARLY;BYDAY=-1SU'), @cal.to_ical << 'does not include ' << 'RRULE:BYMONTH=10;FREQ=YEARLY;BYDAY=-1SU'
+  end
+  
 end
